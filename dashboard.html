@@ -1,0 +1,421 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#f7f4e9">
+<title>RSA • Rastreador solar</title>
+<style>
+:root{--bg:#f7f4e9;--card:#fffdf7;--line:#e5e0d1;--tx:#344333;--mut:#747866;--green:#486344;--sun:#ecc15b;--earth:#ae654b}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tx);font-family:system-ui,-apple-system,Segoe UI,Arial,sans-serif;padding:16px 14px 20px}
+main{max-width:1020px;margin:auto;display:grid;gap:12px}
+button{font:inherit;cursor:pointer;touch-action:manipulation}button:focus-visible,input:focus-visible{outline:3px solid var(--earth);outline-offset:3px}
+.icon{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}
+.svg-defs{position:absolute;width:0;height:0;overflow:hidden}
+h1,h2,p{margin:0}[hidden]{display:none!important}
+
+/* barra superior */
+.top{display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:10px 14px}
+.brand{display:flex;align-items:center;gap:10px;margin-right:auto}
+.brand-mark{display:grid;place-items:center;width:34px;height:34px;background:#f4db93;border:1px solid #e5cb83;border-radius:11px;color:#7c612a}
+.brand-mark .icon{width:20px;height:20px}
+h1{font-size:19px;letter-spacing:.04em;line-height:1;font-weight:800}
+.sub{font-size:10px;color:var(--mut);margin-top:3px}
+.pill{display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border-radius:30px;background:#efeee5;color:#6e705f;font-size:11px;font-weight:650;white-space:nowrap}
+.conn:before{content:"";width:6px;height:6px;border-radius:50%;background:#a4a48d}
+.conn[data-state="sim"]{background:#fbebbc;color:#7b5a22}.conn[data-state="sim"]:before{background:#b7892e}
+.conn[data-state="on"]{background:#e8efdf;color:var(--green)}.conn[data-state="on"]:before{background:#62804e}
+.msg{font-size:11px;color:var(--mut);flex:1 1 100%;order:5;line-height:1.4}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;min-height:38px;padding:8px 14px;border:1px solid #dedbca;border-radius:11px;color:var(--tx);background:#f9f7ed;font-size:12px;font-weight:650;transition:background .15s}
+.btn:hover{background:#f0eddf}
+.btn.primary{background:var(--green);border-color:var(--green);color:#fffdf7}.btn.primary:hover{background:#395535}
+.btn.sunny{background:#eed087;border-color:#e6c77d;color:#594725}.btn.sunny:hover{background:#e9c36b}
+
+/* layout */
+.layout{display:grid;gap:12px}
+.col{display:grid;gap:12px;align-content:start}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px 16px}
+.head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px}
+.head h2{display:flex;align-items:center;gap:7px;font-size:12px;font-weight:750;letter-spacing:.05em;text-transform:uppercase;color:var(--mut)}
+.head h2 .icon{color:var(--green)}
+
+/* painel 3D */
+.tracker{background:linear-gradient(155deg,#fffdf7,#f3f1e2);display:flex;flex-direction:column}
+.tracker svg.stage{display:block;width:100%;height:auto;max-height:340px;margin:auto;overflow:visible}
+.stage text{font:12px system-ui,sans-serif;fill:#787c62}.stage .direction-text{fill:#957026;font-weight:650}
+.tracker[data-ready="false"] .live-direction{visibility:hidden}
+.tracker[data-ready="false"] #tracker-panel{filter:saturate(.6)}
+.tracker .pill{background:#e9eddf;color:#576b48}
+.tracker[data-source="sim"] .pill,.tracker[data-source="preview"] .pill{background:#f7e8bb;color:#7b602c}
+
+/* sensores */
+.sensor{display:grid;grid-template-columns:22px 62px 1fr 42px;align-items:center;gap:8px;padding:5px 0;--accent:#b68b2f;--tint:#faf0cc}
+.sensor:nth-child(2){--accent:#789058;--tint:#ecf0df}.sensor:nth-child(3){--accent:#b76c50;--tint:#f7e7df}.sensor:nth-child(4){--accent:#b68648;--tint:#f6ebd9}
+.sensor .icon{color:var(--accent);width:15px;height:15px}
+.sensor span{font-size:10px;font-weight:750;letter-spacing:.07em;color:#737664}
+.sensor b{font-size:14px;text-align:right;font-variant-numeric:tabular-nums}
+.bar{height:6px;background:var(--tint);border-radius:6px;overflow:hidden}
+.bar i{display:block;height:100%;width:0;background:var(--accent);border-radius:6px;transition:width .3s}
+
+/* eixos */
+.axes{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.axis{padding:10px 12px;border:1px solid var(--line);border-radius:12px;background:#fbf9f0}
+.axis-top{display:flex;align-items:center;gap:6px;font-size:10px;font-weight:700;letter-spacing:.07em;color:var(--mut)}
+.axis-top .icon{color:var(--green)}
+.big{font-size:28px;font-weight:650;letter-spacing:-1px;line-height:1.2;margin:6px 0 8px;color:var(--green);font-variant-numeric:tabular-nums}
+.axis.v .big,.axis.v .axis-top .icon{color:var(--earth)}
+.axis-bot{display:flex;flex-wrap:wrap;gap:6px;align-items:center;justify-content:space-between}
+.st{font-size:10px;border-radius:6px;padding:3px 7px;background:#f0f1e7;color:#6f765f}
+.st[data-status="1"]{background:#e9efdf;color:#526941}.st[data-status="2"]{background:#fcf0cd;color:#8a6925}.st[data-status="3"]{background:#f7e4db;color:#9c5942}
+.err{font-size:10px;color:var(--mut);font-variant-numeric:tabular-nums}
+
+/* controles */
+.btns{display:flex;gap:8px;margin-bottom:12px}.btns .btn{flex:1}
+.slider{margin-top:8px}
+.slider-label{display:flex;align-items:center;justify-content:space-between;font-size:12px;font-weight:600}
+.angle{border:1px solid #e2e6d5;border-radius:7px;background:#f0f3e7;color:var(--green);padding:2px 8px;font-size:11px;font-variant-numeric:tabular-nums}
+.slider.v .angle{background:#f8eee6;color:var(--earth);border-color:#efdfd1}
+input[type=range]{display:block;width:100%;height:6px;margin:12px 0 4px;appearance:none;-webkit-appearance:none;background:#e5e7d9;border-radius:9px;cursor:pointer;--thumb:var(--green)}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;border-radius:50%;background:var(--thumb);border:3px solid var(--card);box-shadow:0 0 0 1px var(--thumb)}
+input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;background:var(--thumb);border:3px solid var(--card);box-shadow:0 0 0 1px var(--thumb)}
+.slider.v input{background:#eee1d7;--thumb:var(--earth)}
+
+@media(min-width:860px){
+  body{padding:24px 20px}
+  .layout{grid-template-columns:1.1fr 1fr;align-items:stretch}
+  .msg{flex:0 1 auto;order:0}
+}
+@media(max-width:380px){.big{font-size:24px}.sensor{grid-template-columns:20px 56px 1fr 38px}}
+@media(prefers-reduced-motion:reduce){*,*:before,*:after{transition:none!important}}
+</style>
+</head>
+<body>
+<svg class="svg-defs" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><defs>
+<symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1.5 1.5m11 11L19 19M5 19l1.5-1.5m11-11L19 5"/></symbol>
+<symbol id="i-ble" viewBox="0 0 24 24"><path d="m7 7 10 10-5 4V3l5 4L7 17"/></symbol>
+<symbol id="i-play" viewBox="0 0 24 24"><path d="m9 5 10 7-10 7Z"/></symbol>
+<symbol id="i-arrow" viewBox="0 0 24 24"><path d="M12 19V5m-5 5 5-5 5 5"/></symbol>
+<symbol id="i-axis" viewBox="0 0 24 24"><path d="M3 12h18M7 8l-4 4 4 4m10-8 4 4-4 4"/></symbol>
+<symbol id="i-scan" viewBox="0 0 24 24"><path d="M8 3H3v5m13-5h5v5M3 16v5h5m13-5v5h-5M7 12h10m-5-3v6"/></symbol>
+<symbol id="i-controls" viewBox="0 0 24 24"><path d="M4 7h7m4 0h5M4 17h2m4 0h10"/><circle cx="13" cy="7" r="2"/><circle cx="8" cy="17" r="2"/></symbol>
+</defs></svg>
+<main>
+  <header class="top">
+    <div class="brand"><div class="brand-mark"><svg class="icon" aria-hidden="true"><use href="#i-sun"/></svg></div><div><h1>RSA</h1><p class="sub">Rastreador solar</p></div></div>
+    <span class="pill conn" id="conn" role="status">Desconectado</span>
+    <span class="pill" id="rate" title="Leituras por segundo · pacotes perdidos (pela sequência) · maior pausa entre pacotes nos últimos 10 s">—</span>
+    <button class="btn primary" id="bBle"><svg class="icon" aria-hidden="true"><use href="#i-ble"/></svg><span id="bBleTxt">Conectar</span></button>
+    <button class="btn" id="bSim"><svg class="icon" aria-hidden="true"><use href="#i-play"/></svg>Simulação</button>
+    <p class="msg" id="msg" aria-live="polite">Conecte o rastreador ou use a simulação.</p>
+  </header>
+
+  <div class="layout">
+    <section class="card tracker" id="tracker-card" data-ready="false" aria-labelledby="tracker-title">
+      <div class="head"><h2 id="tracker-title"><svg class="icon" aria-hidden="true"><use href="#i-sun"/></svg>Orientação do painel</h2><span class="pill" id="tracker-state">Aguardando</span></div>
+      <svg class="stage" id="tracker-drawing" viewBox="105 0 390 320" role="img" aria-label="Rastreador solar. Aguardando ângulos.">
+        <defs><marker id="tracker-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M1 1 9 5 1 9Z" fill="#bc923e"/></marker></defs>
+        <ellipse cx="300" cy="237" rx="160" ry="43" fill="#e9eddc"/>
+        <ellipse cx="300" cy="240" rx="107" ry="27" fill="#dce1c8" opacity=".6"/>
+        <g id="tracker-ground"></g>
+        <g id="tracker-base"></g>
+        <g id="tracker-panel"></g>
+        <g class="live-direction"><path id="tracker-normal" fill="none" stroke="#bc923e" stroke-width="3" stroke-linecap="round" stroke-dasharray="6 5" marker-end="url(#tracker-arrow)"/><circle id="tracker-origin" r="4" fill="#f4d58a" stroke="#aa8033" stroke-width="1.5"/><text id="tracker-direction-label" class="direction-text">Direção</text></g>
+      </svg>
+    </section>
+
+    <div class="col">
+      <section class="card" aria-labelledby="light-title">
+        <div class="head"><h2 id="light-title"><svg class="icon" aria-hidden="true"><use href="#i-sun"/></svg>Luz (LDR)</h2><span class="err">0–4095</span></div>
+        <div class="sensor"><svg class="icon" aria-hidden="true"><use href="#i-arrow"/></svg><span>SUPERIOR</span><div class="bar"><i id="bsup"></i></div><b id="sup">—</b></div>
+        <div class="sensor"><svg class="icon" style="transform:rotate(180deg)" aria-hidden="true"><use href="#i-arrow"/></svg><span>INFERIOR</span><div class="bar"><i id="binf"></i></div><b id="inf">—</b></div>
+        <div class="sensor"><svg class="icon" style="transform:rotate(-90deg)" aria-hidden="true"><use href="#i-arrow"/></svg><span>ESQUERDO</span><div class="bar"><i id="besq"></i></div><b id="esq">—</b></div>
+        <div class="sensor"><svg class="icon" style="transform:rotate(90deg)" aria-hidden="true"><use href="#i-arrow"/></svg><span>DIREITO</span><div class="bar"><i id="bdir"></i></div><b id="dir">—</b></div>
+      </section>
+
+      <section class="card" aria-labelledby="axes-title">
+        <div class="head"><h2 id="axes-title"><svg class="icon" aria-hidden="true"><use href="#i-axis"/></svg>Eixos</h2><span class="err" id="tol">erro log</span></div>
+        <div class="axes">
+          <div class="axis"><div class="axis-top"><svg class="icon" aria-hidden="true"><use href="#i-axis"/></svg>ERRO HORIZONTAL</div><div class="big" id="ah">—</div><div class="axis-bot"><span class="st" id="sh">Aguardando</span><span class="err" id="dh">—</span></div></div>
+          <div class="axis v"><div class="axis-top"><svg class="icon" style="transform:rotate(90deg)" aria-hidden="true"><use href="#i-axis"/></svg>ERRO VERTICAL</div><div class="big" id="av">—</div><div class="axis-bot"><span class="st" id="sv">Aguardando</span><span class="err" id="dv">—</span></div></div>
+        </div>
+      </section>
+
+      <section class="card" id="ctl" aria-labelledby="controls-title">
+        <div class="head"><h2 id="controls-title"><svg class="icon" aria-hidden="true"><use href="#i-controls"/></svg>Controle</h2><span class="pill" id="modo">Aguardando</span></div>
+        <div class="btns"><button class="btn" id="bScan" onclick="cmd('s')"><svg class="icon" aria-hidden="true"><use href="#i-scan"/></svg>Varredura</button><button class="btn sunny" onclick="cmd('t')"><svg class="icon" aria-hidden="true"><use href="#i-sun"/></svg>Rastrear</button></div>
+        <div class="slider"><label class="slider-label" for="rh">Horizontal<span class="angle"><span id="lh">90</span>°</span></label><input type="range" min="0" max="180" value="90" id="rh"></div>
+        <div class="slider v"><label class="slider-label" for="rv">Vertical<span class="angle"><span id="lv">90</span>°</span></label><input type="range" min="0" max="180" value="90" id="rv"></div>
+      </section>
+    </div>
+  </div>
+</main>
+<script>
+const SVC='6e400001-b5a3-f393-e0a9-e50e24dcca9e',
+      RXU='6e400002-b5a3-f393-e0a9-e50e24dcca9e',
+      TXU='6e400003-b5a3-f393-e0a9-e50e24dcca9e';
+// Ajustes: AngV do firmware que corresponde ao painel "plano" no desenho; tolerância (log); luz mínima (ADC); tempo p/ dado desatualizado.
+const V_ZERO=90, TOL=0.15, LUZ_MIN=10, STALE_MS=3000;   // TOL e LUZ_MIN = TOLERANCIA_H/V e LIMIAR_LUZ_MINIMA do firmware
+const MODOS=['Rastreando','Manual','Varrendo'];
+const $=id=>document.getElementById(id);
+let dev=null,rx=null,buf='',sim=null,lastRx=0,stale=false,lastSig='',same=0,frozen=false,lastCmd=0,lastAh=90,lastAv=90,ctl={h:null,v:null,until:0},connAt=0,warned=false,okN=0,badN=0,okPrev=0,uiLegacy=null,simManual=null,simManualH=null,cmdH=90;
+const tracker={h:90,v:0,targetH:90,targetV:0,frame:null,last:0,source:'',ready:false};
+const reduceMotion=window.matchMedia('(prefers-reduced-motion: reduce)');
+const radians=degrees=>degrees*Math.PI/180;
+const project=([x,y,z])=>[300+.92*x-.42*y,220+.26*x+.55*y-.93*z];
+const points3D=vertices=>vertices.map(p=>project(p).map(v=>v.toFixed(2)).join(',')).join(' ');
+const polygon3D=(vertices,fill,stroke='#8d987c')=>'<polygon points="'+points3D(vertices)+'" fill="'+fill+'" stroke="'+stroke+'" stroke-width="1" stroke-linejoin="round"/>';
+
+function box3D(x,y,z,width,depth,height,colors){
+  const a=[x-width/2,y-depth/2,z],b=[x+width/2,y-depth/2,z],c=[x+width/2,y+depth/2,z],d=[x-width/2,y+depth/2,z];
+  const top=p=>[p[0],p[1],p[2]+height];
+  return polygon3D([b,c,top(c),top(b)],colors[1])+polygon3D([c,d,top(d),top(c)],colors[2])+polygon3D([top(a),top(b),top(c),top(d)],colors[0]);
+}
+function prepareTracker(){
+  let arc='';
+  for(let h=0;h<=180;h+=5){const a=radians(h-90),p=project([126*Math.sin(a),126*Math.cos(a),0]);arc+=(h?'L':'M')+p.join(' ');}
+  $('tracker-ground').innerHTML='<path d="'+arc+'" fill="none" stroke="#c1caa9" stroke-width="1.5" stroke-dasharray="4 5"/>'+[0,90,180].map(h=>{const a=radians(h-90),p=project([146*Math.sin(a),146*Math.cos(a),0]);return '<text x="'+p[0]+'" y="'+(p[1]+10)+'" text-anchor="middle">'+h+'°</text>';}).join('')+'<path class="live-direction" id="tracker-heading" fill="none" stroke="#82945f" stroke-width="2" stroke-dasharray="4 4"/><circle class="live-direction" id="tracker-heading-dot" r="4" fill="#82945f"/>';
+  let base=box3D(0,0,0,164,110,17,['#ddc49c','#b99a6c','#ccb082']);
+  for(const x of [-52,0,52]){const a=project([x,-54,17.5]),b=project([x,54,17.5]);base+='<path d="M'+a.join(' ')+'L'+b.join(' ')+'" stroke="#baa179" stroke-width=".8"/>';}
+  for(const x of [-71,71])for(const y of [-45,45]){const p=project([x,y,18]);base+='<ellipse cx="'+p[0]+'" cy="'+p[1]+'" rx="2.5" ry="1.5" fill="#9e8c6b"/>';}
+  base+=box3D(0,0,18,44,36,9,['#9daa86','#76865f','#8a9973']);
+  base+=box3D(0,0,27,16,16,65,['#819475','#687d5c','#96a585']);
+  base+=box3D(0,0,85,55,22,8,['#a5b095','#7e906f','#94a584']);
+  $('tracker-base').innerHTML=base;
+  drawTracker(90,0);
+}
+
+function drawTracker(horizontal,vertical){
+  const h=radians(horizontal-90),v=radians(vertical),s=Math.sin(h),c=Math.cos(h),sv=Math.sin(v),cv=Math.cos(v);
+  const u=[c,-s,0],d=[s*cv,c*cv,-sv],normal=[s*sv,c*sv,cv];
+  const surface=(a,b,offset=0)=>[u[0]*a+d[0]*b+normal[0]*offset,u[1]*a+d[1]*b+normal[1]*offset,93+u[2]*a+d[2]*b+normal[2]*offset];
+  const corners=[[-82,-51],[82,-51],[82,51],[-82,51]],top=corners.map(p=>surface(...p)),bottom=corners.map(p=>surface(p[0],p[1],-5));
+  const faces=[{vertices:bottom,fill:'#7a8b77'}];
+  for(let i=0;i<4;i++){const j=(i+1)%4;faces.push({vertices:[bottom[i],bottom[j],top[j],top[i]],fill:i%2?'#afbaa1':'#c3cbb5'});}
+  faces.push({vertices:top,fill:'#355b52',front:true});
+  const depth=face=>face.vertices.reduce((total,p)=>total+.39*p[0]+.86*p[1]+.62*p[2],0)/face.vertices.length;
+  faces.sort((a,b)=>depth(a)-depth(b));
+  let panel='';
+  for(const face of faces){
+    panel+=polygon3D(face.vertices,face.fill,face.front?'#54735e':'#8d9b80');
+    if(face.front){
+      for(let row=0;row<3;row++)for(let col=0;col<5;col++){
+        const x=-75+col*30.4,y=-44+row*30.4,w=27.6,l=27.5;
+        panel+=polygon3D([surface(x,y,.4),surface(x+w,y,.4),surface(x+w,y+l,.4),surface(x,y+l,.4)],(row+col)%2?'#608c7e':'#527e71','#a5bca5');
+        const a=project(surface(x+w/2,y+1,1)),b=project(surface(x+w/2,y+l-1,1));
+        panel+='<path d="M'+a.join(' ')+'L'+b.join(' ')+'" stroke="#bacdb7" stroke-width=".6" opacity=".75"/>';
+      }
+    }
+  }
+  $('tracker-panel').innerHTML=panel;
+  const origin=project(surface(0,0,7)),tip=project(surface(0,0,97));
+  $('tracker-normal').setAttribute('d','M'+origin.join(' ')+'L'+tip.join(' '));
+  $('tracker-origin').setAttribute('cx',origin[0]);$('tracker-origin').setAttribute('cy',origin[1]);
+  $('tracker-direction-label').setAttribute('x',tip[0]+10);$('tracker-direction-label').setAttribute('y',tip[1]-5);
+  const center=project([0,0,1]),heading=project([126*s,126*c,1]);
+  $('tracker-heading').setAttribute('d','M'+center.join(' ')+'L'+heading.join(' '));
+  $('tracker-heading-dot').setAttribute('cx',heading[0]);$('tracker-heading-dot').setAttribute('cy',heading[1]);
+}
+function animateTracker(time){
+  const dt=tracker.last?Math.min((time-tracker.last)/1000,.1):1/60;
+  tracker.last=time;const factor=1-Math.exp(-dt*12);
+  tracker.h+=(tracker.targetH-tracker.h)*factor;tracker.v+=(tracker.targetV-tracker.v)*factor;
+  if(Math.abs(tracker.targetH-tracker.h)+Math.abs(tracker.targetV-tracker.v)<.06){
+    tracker.h=tracker.targetH;tracker.v=tracker.targetV;drawTracker(tracker.h,tracker.v);tracker.frame=null;
+  }else{drawTracker(tracker.h,tracker.v);tracker.frame=requestAnimationFrame(animateTracker);}
+}
+
+function orientTracker(horizontal,vertical,source){
+  if(!Number.isFinite(horizontal)||!Number.isFinite(vertical)||horizontal<0||horizontal>180||vertical<-90||vertical>90)return;
+  tracker.targetH=horizontal;tracker.targetV=vertical;tracker.source=source;tracker.ready=true;
+  $('tracker-card').dataset.ready='true';$('tracker-card').dataset.source=source;
+  const deg=n=>Number(n.toFixed(1)).toLocaleString('pt-BR')+'°';
+  $('tracker-state').textContent=source==='sim'?'Simulação':source==='cmd'?'Movendo':'Ao vivo';
+  $('tracker-drawing').setAttribute('aria-label','Rastreador solar: horizontal '+deg(horizontal)+', inclinação '+deg(vertical)+'. '+$('tracker-state').textContent+'.');
+  if(reduceMotion.matches){
+    if(tracker.frame!==null)cancelAnimationFrame(tracker.frame);
+    tracker.frame=null;tracker.h=horizontal;tracker.v=vertical;drawTracker(horizontal,vertical);
+  }else if(tracker.frame===null){tracker.last=0;tracker.frame=requestAnimationFrame(animateTracker);}
+}
+
+// Aceita a linha atual do firmware e, se existir, o formato antigo "T,...".
+const ST={'ALINHADO':[1,'Alinhado'],'MOVENDO':[2,'Movendo'],'NO LIMITE':[3,'No limite'],'SEM LUZ':[0,'Sem luz'],'MANUAL':[0,'Manual'],'VARRENDO':[2,'Varrendo']};
+function parse(l){
+  l=l.trim();let d=null;
+  if(l.startsWith('T,')){
+    const x=l.split(',').map(Number);
+    if(x.length>=12)d={sup:x[1],inf:x[2],esq:x[3],dir:x[4],eV:x[5],eH:x[6],ah:x[7],av:x[8],mode:x[11],legacy:true};
+  }else if(l.startsWith('R,')){
+    const x=l.split(','),N={A:'ALINHADO',M:'MOVENDO',L:'NO LIMITE',S:'SEM LUZ',X:'MANUAL',V:'VARRENDO'};
+    if(x.length===11)d={sup:+x[1],inf:+x[2],esq:+x[3],dir:+x[4],eV:+x[5],eH:+x[6],ah:+x[7],av:+x[8],sH:N[x[9]]||null,sV:N[x[10]]||null};
+  }else{
+    const k={};l.replace(/([A-Za-z]+):\s*([+-]?\d+(?:\.\d+)?)/g,(m,a,b)=>{k[a]=+b;return m});
+    if(['Sup','Inf','Esq','Dir','AngV'].every(x=>x in k)){
+      const m=/\bH:\s*([A-Za-z ]+?)\s*\|\s*V:\s*([A-Za-z ]+?)\s*$/.exec(l);
+      d={sup:k.Sup,inf:k.Inf,esq:k.Esq,dir:k.Dir,eV:k.DifV,eH:k.DifH,ah:'AngH' in k?k.AngH:null,av:k.AngV,sH:m?m[1].toUpperCase():null,sV:m?m[2].toUpperCase():null};
+    }
+  }
+  if(!d)return null;
+  return valido(d)?d:null;
+}
+function valido(d){
+  return [d.sup,d.inf,d.esq,d.dir].every(v=>Number.isFinite(v)&&v>=0&&v<=4095)&&Number.isFinite(d.av)&&(d.ah==null||(d.ah>=0&&d.ah<=180));
+}
+const sg=v=>(v>=0?'+':'')+v.toFixed(3);
+function axis(k,luz,e,shown,fw){
+  $('a'+k).textContent=sg(Number.isFinite(shown)?shown:e);
+  const el=$('s'+k);
+  if(fw&&ST[fw]){el.dataset.status=ST[fw][0];el.textContent=ST[fw][1];return}   // status real do firmware
+  const st=!luz?2:Math.abs(e)<=TOL?1:3;
+  el.dataset.status=st;el.textContent=['','Na tolerância','Luz baixa','Acima do limite'][st];
+}
+function congelado(d,source){   // placa envia, mas as 4 leituras não mexem: diz o provável motivo
+  if(source==='sim')return;
+  const sig=[d.sup,d.inf,d.esq,d.dir].join();
+  if(sig!==lastSig){lastSig=sig;same=0;if(frozen){frozen=false;$('msg').textContent='Recebendo dados do ESP32.'}return}
+  if(++same<12||frozen)return;                      // ~4 s de leituras idênticas
+  frozen=true;
+  const v=[d.sup,d.inf,d.esq,d.dir];
+  $('msg').textContent=v.every(x=>x<=5)?'A placa envia, mas os 4 sensores leem ~0: sem tensão nos LDRs. Confira GND/3V3 e os divisores.'
+    :v.every(x=>x>=4090)?'A placa envia, mas os 4 sensores leem ~4095 (saturados): confira divisor de tensão ou curto no 3V3.'
+    :'A placa envia, mas as 4 leituras estão idênticas há alguns segundos. Com LDR real o ADC sempre oscila: confira pinos/fiação e se este é o firmware gravado.';
+}
+function render(d,source){
+  lastRx=Date.now();stale=false;okN++;congelado(d,source);
+  if(warned){warned=false;$('msg').textContent='Recebendo dados do ESP32.'}
+  [['sup',d.sup],['inf',d.inf],['esq',d.esq],['dir',d.dir]].forEach(([k,v])=>{$(k).textContent=v;$('b'+k).style.width=(v/4095*100)+'%'});
+  const eh=Math.log(d.esq+1)-Math.log(d.dir+1), ev=Math.log(d.sup+1)-Math.log(d.inf+1);
+  axis('h',Math.max(d.esq,d.dir)>LUZ_MIN,eh,d.eH,d.sH);
+  axis('v',Math.max(d.sup,d.inf)>LUZ_MIN,ev,d.eV,d.sV);
+  $('dh').textContent=d.ah==null?'comando '+cmdH+'°':'H '+d.ah+'°';
+  $('dv').textContent=(d.legacy?'V ':'comando ')+d.av+'°';
+  ui(!!d.legacy);
+  if(d.legacy&&d.mode!=null)$('modo').textContent=MODOS[d.mode]||'—';
+  else if(d.sH)$('modo').textContent=d.sH==='MANUAL'?'Manual':d.sH==='VARRENDO'?'Varrendo':'Rastreando';   // modo real, vindo do firmware
+  if(Date.now()-lastCmd>1500){   // não briga com o slider logo após um comando
+    if(d.ah!=null&&document.activeElement!==$('rh'))$('rh').value=d.ah;
+    if(document.activeElement!==$('rv'))$('rv').value=d.av;
+    $('lh').textContent=$('rh').value;$('lv').textContent=$('rv').value;
+  }
+  lastAh=d.ah==null?cmdH:d.ah;lastAv=d.av;
+  let hh=lastAh,vv=d.av,src=source;
+  if(source!=='sim'&&ctl.until>Date.now()){
+    if(ctl.h!=null){if(d.ah!=null&&Math.abs(d.ah-ctl.h)<=1)ctl.h=null;else{hh=ctl.h;src='cmd'}}
+    if(ctl.v!=null){if(Math.abs(d.av-ctl.v)<=1)ctl.v=null;else{vv=ctl.v;src='cmd'}}
+  }else ctl.h=ctl.v=null;
+  orientTracker(hh,d.legacy?vv:vv-V_ZERO,src);
+}
+function linha(l){
+  const d=parse(l);
+  if(d)render(d,'real');else if(l.trim()){badN++;$('msg').textContent='Linha não reconhecida: '+l.trim().slice(0,70)}
+}
+function estado(t,m){
+  const on=t.startsWith('Conectado');
+  $('conn').textContent=t;$('conn').dataset.state=t==='SIMULAÇÃO'?'sim':on?'on':'off';
+  $('bBleTxt').textContent=on?'Desconectar':'Conectar';
+  if(m)$('msg').textContent=m;
+  if(t==='Desconectado'&&tracker.ready&&tracker.source==='real')$('tracker-state').textContent='Última leitura';
+}
+
+const SC={65:'ALINHADO',77:'MOVENDO',76:'NO LIMITE',83:'SEM LUZ',88:'MANUAL',86:'VARRENDO'};   // A M L S X V
+let seqPrev=-1,lostN=0,prevArr=0,gaps=[];
+function chegou(){   // mede pausas entre pacotes
+  const t=Date.now();if(prevArr)gaps.push([t,t-prevArr]);prevArr=t;
+}
+function rxChunk(v){   // v: DataView de uma notificação
+  if(sim!==null)return;
+  if(v.byteLength===18&&v.getUint8(0)===0xA5){   // quadro binário (1 pacote = 1 leitura)
+    const seq=v.getUint8(1);
+    if(seqPrev>=0){const g=(seq-seqPrev-1+256)%256;if(g>0&&g<128)lostN+=g}   // buracos na sequência = pacotes perdidos
+    seqPrev=seq;
+    const d={sup:v.getUint16(2,true),inf:v.getUint16(4,true),esq:v.getUint16(6,true),dir:v.getUint16(8,true),
+      eV:v.getInt16(10,true)/1000,eH:v.getInt16(12,true)/1000,ah:v.getUint8(14),av:v.getUint8(15),
+      sH:SC[v.getUint8(16)]||null,sV:SC[v.getUint8(17)]||null};
+    if(valido(d)){chegou();render(d,'real')}else badN++;
+    return;
+  }
+  buf+=new TextDecoder().decode(v);   // texto (firmware antigo / USB): remonta até o '\n'
+  if(buf.length>1000)buf='';
+  let i;while((i=buf.indexOf('\n'))>=0){linha(buf.slice(0,i));buf=buf.slice(i+1)}
+}
+async function conectar(){
+  if(dev&&dev.gatt&&dev.gatt.connected){dev.gatt.disconnect();return}
+  if(!navigator.bluetooth){estado('Sem suporte','Use Chrome/Edge (Windows, Android) ou Bluefy (iPhone). Abra por https ou localhost.');return}
+  try{
+    pararSim();
+    dev=await navigator.bluetooth.requestDevice({filters:[{services:[SVC]}]});
+    dev.addEventListener('gattserverdisconnected',()=>{rx=null;buf='';estado('Desconectado','Conexão encerrada.')});
+    estado('Conectando…');
+    const srv=await dev.gatt.connect(), svc=await srv.getPrimaryService(SVC);
+    const tx=await svc.getCharacteristic(TXU);
+    try{rx=await svc.getCharacteristic(RXU)}catch(_){rx=null}
+    buf='';
+    tx.addEventListener('characteristicvaluechanged',e=>rxChunk(e.target.value));
+    await tx.startNotifications();
+    connAt=Date.now();warned=false;okN=okPrev=badN=0;seqPrev=-1;lostN=0;prevArr=0;gaps=[];
+    estado('Conectado · '+(dev.name||'ESP32'),'Conectado. Aguardando a primeira leitura…');
+  }catch(e){estado('Desconectado',e.name==='NotFoundError'?'Nenhum dispositivo escolhido.':'Erro: '+e.message)}
+}
+// Comandos: t = rastrear · hNN = ângulo horizontal · vNN = ângulo vertical · s = varredura (formato antigo)
+const MODO_TXT={t:'Rastreando',s:'Varrendo',v:'Manual',h:'Manual'};
+function ui(legacy){   // botão Varredura só existe no formato antigo
+  if(uiLegacy===legacy)return;uiLegacy=legacy;
+}
+function cmd(c){
+  lastCmd=Date.now();
+  if(c[0]==='h')cmdH=Number(c.slice(1));
+  if(sim!==null){simCmd(c);return}
+  if(!(dev&&dev.gatt&&dev.gatt.connected)){$('msg').textContent='Conecte ao ESP32 primeiro.';return}
+  if(!rx){$('msg').textContent='O firmware não tem canal de comandos (RX). Use o .ino atualizado.';return}
+  if(c[0]==='h'||c[0]==='v'){   // desenho passa a seguir o comando até o servo chegar
+    const ax=c[0],alvo=Number(c.slice(1)),dif=Math.abs(alvo-(ax==='h'?lastAh:lastAv));
+    ctl[ax]=alvo;ctl.until=Date.now()+2500+dif*20;
+  }else if(c[0]==='t'){ctl.h=ctl.v=null}
+  rx.writeValueWithoutResponse(new TextEncoder().encode(c+'\n'))
+    .then(()=>{$('modo').textContent=MODO_TXT[c[0]]||'—';$('msg').textContent='Enviado: '+c})
+    .catch(e=>{$('msg').textContent='Erro: '+e.message});
+}
+[['rh','lh','h'],['rv','lv','v']].forEach(([r,l,c])=>{
+  $(r).addEventListener('input',()=>{
+    $(l).textContent=$(r).value;lastCmd=Date.now();
+    if(sim!==null)cmd(c+$(r).value);
+    else orientTracker(+$('rh').value,(+$('rv').value)-V_ZERO,'cmd');   // prévia imediata no desenho
+  });
+  $(r).addEventListener('change',()=>cmd(c+$(r).value));
+});
+
+// Dados artificiais só para explorar a interface.
+function simCmd(c){
+  if(c==='t'){simManual=null;simManualH=null;$('modo').textContent='Rastreando'}
+  else if(c[0]==='v'){simManual=Number(c.slice(1));$('modo').textContent='Manual'}
+  else if(c[0]==='h'){simManualH=Number(c.slice(1));$('modo').textContent='Manual'}
+}
+function pararSim(){if(sim){clearInterval(sim);sim=null}}
+function simular(){
+  pararSim();simManual=null;simManualH=null;ui(false);$('modo').textContent='Rastreando';
+  estado('SIMULAÇÃO','Dados artificiais: nosso girassol está só ensaiando!');
+  let n=0;
+  sim=setInterval(()=>{
+    n++;const a=170*Math.sin(n/15),b=400*Math.sin(n/20);
+    const d={sup:Math.round(1800+b),inf:Math.round(1800-b),esq:Math.round(1900+a*4),dir:Math.round(1900-a*4),ah:simManualH!==null?simManualH:Math.round(90+40*Math.sin(n/30)),av:simManual!==null?simManual:Math.round(90+30*Math.sin(n/25))};
+    d.eH=Math.log(d.esq+1)-Math.log(d.dir+1);d.eV=Math.log(d.sup+1)-Math.log(d.inf+1);
+    render(d,'sim');
+  },300);
+}
+setInterval(()=>{
+  const on=sim!==null||(dev&&dev.gatt&&dev.gatt.connected);
+  const agora=Date.now();gaps=gaps.filter(g=>agora-g[0]<10000);
+  const pausa=Math.max(0,...gaps.map(g=>g[1]));
+  $('rate').textContent=on?(okN-okPrev)+' Hz · '+(lostN+badN)+' perdidas · pausa '+(pausa/1000).toLocaleString('pt-BR',{maximumFractionDigits:1})+' s':'—';okPrev=okN;
+  if(dev&&dev.gatt&&dev.gatt.connected&&sim===null&&lastRx<connAt&&!warned&&Date.now()-connAt>4000){
+    warned=true;$('tracker-state').textContent='Sem dados';
+    $('msg').textContent='Conectado, mas nenhuma leitura chegou. Se a placa acabou de ligar, aguarde a varredura inicial (~30 s); se não, abra o Monitor Serial e veja se ela imprime a linha Sup/Inf/Esq/Dir.';
+  }
+  if(lastRx&&!stale&&Date.now()-lastRx>STALE_MS&&(sim!==null||(dev&&dev.gatt&&dev.gatt.connected))){stale=true;$('tracker-state').textContent='Desatualizado'}
+},1000);
+$('tol').textContent='erro log · tol. ±'+TOL.toLocaleString('pt-BR');
+prepareTracker();
+$('bBle').onclick=conectar;$('bSim').onclick=simular;
+</script>
+</body>
+</html>

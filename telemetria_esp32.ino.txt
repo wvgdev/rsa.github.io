@@ -1,0 +1,12 @@
+O CÓDIGO ATUAL JÁ É COMPATÍVEL — NÃO É NECESSÁRIO ALTERÁ-LO PARA USB.
+
+Serial.begin(115200) e as linhas Sup / Inf / Esq / Dir / DifV / DifH / AngV
+já são reconhecidas pelo dashboard atualizado.
+
+Feche o Monitor Serial e conecte a COM no dashboard, usando 115200 baud.
+O firmware fornecido não implementa Bluetooth/Wi-Fi.
+
+A serial não relata direção/pulso/hold do horizontal. Se futuramente a equipe
+quiser mostrá-los, deverá acrescentar campos ao firmware e adaptar o dashboard.
+Não apresente 88, 95 ou 103 como ângulo horizontal: o servo é contínuo.
+O campo AngV informa o comando vertical, não posição medida.
